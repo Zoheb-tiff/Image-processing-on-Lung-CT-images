@@ -1,0 +1,56 @@
+%We initialize a matrix of the same size as that of the stacked images forming the 3D data.
+M = zeros(858,858,27);
+for w = 1:27 %Enters the for loop, reading individual iamge and doing all operations on it
+    Img = imread(sprintf('%d.jpg',w)); %Reads image w
+    Img = rgb2gray(Img); %Converts to grayscale
+    Img = double(Img); %Converts to double format so that normalization is possible
+    %figure,imagesc(Img),colorbar,colormap(gray),title('Original Image')
+    %pause(1);
+    
+    Norm_Img_N = (Img - min(Img(:)));
+    Norm_Img_D = (max(Img(:))-min(Img(:)));
+    Norm_Img = Norm_Img_N./Norm_Img_D; %Normalized image w
+    %figure, imagesc(Norm_Img),colormap(gray),colorbar,title('Normalized Lung Image')
+    
+    %pause(1);
+ 
+    mask = zeros(size(Img)); %Initialize a matrix which would hold the data for the mask used in Active Contour
+    mask(200:750,100:800) = 1; %Defines the mask
+    %figure,imagesc(mask),colorbar,colormap(gray),title('Initial Contour Location')
+    %pause(1);
+ 
+    Act_Cont = activecontour(Norm_Img,mask,300); 
+    A_C = Act_Cont.*Norm_Img; %Multiplies the binary image obtained from active contour
+    %figure,imagesc(A_C),colorbar,colormap(gray)
+ 
+ 
+ 
+    [m,n] = size(Norm_Img);
+ 
+    for i = 1:m
+        for j = 1:n
+            if (A_C(i,j)  > 0.7) | (A_C(i,j) <0.10) %Defining Thresholding window
+                A_C(i,j) = 0;
+            else
+                A_C(i,j) =1;
+            end
+        end
+    end
+    %figure, imagesc(A_C),colormap(gray),colorbar,title('Segnmentation by thresholding')
+    A_C_Fill = imfill(A_C); %Fills the gaps after thresholding
+    %figure,imagesc(A_C_Fill),colorbar,colormap(gray),title('Segmented and filled')
+    %pause(1);
+ 
+    SE = strel('sphere',3); %Defines the structuring element to be used for erosion
+    Erode_A_C_Fill = imerode(A_C_Fill,SE); %Erosion
+    %figure, imagesc(Erode_A_C_Fill), colormap(gray),colorbar, title('Segmented and eroded')
+    %pause(1);
+ 
+    Segmented = Erode_A_C_Fill.*Norm_Img ; %Multiplies eroded binary image to the normalized image to get the segmented part.
+    figure,imagesc(Segmented),colormap(gray),colorbar, title('Segmented lung') %Displays the segmented lung portion for image w
+    %pause(1);
+ 
+    M(:,:,w) = Segmented; %Saves the segmented image in an vector form, thereby forming a 3D structure
+    
+    
+End
