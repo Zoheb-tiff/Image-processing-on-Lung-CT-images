@@ -1,0 +1,10 @@
+%%Minimum Intensity Projection
+
+mIP = min(M,[],3); %Defines the minimum intensity projection 
+figure, imagesc(mIP),colorbar,colormap(gray),title('Minimum Intensity Projection');
+
+
+%%Maximum Intensity Projection
+MIP = max(M,[],3); %Defines the maximum intensity projection 
+figure,imagesc(MIP),colorbar,colormap(gray),title('Maximum Intensity Projection')
+
