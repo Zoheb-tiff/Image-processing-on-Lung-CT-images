@@ -1,0 +1,66 @@
+Img = imread('10.jpg'); %Reads slice 10
+Img = rgb2gray(Img); %Converts to grayscale
+Img = double(Img); %Converts format to double to enable normalization
+figure,imagesc(Img),colorbar,colormap(gray),title('Original Image')
+%pause(1);
+    
+Norm_Img_N = (Img - min(Img(:)));
+Norm_Img_D = (max(Img(:))-min(Img(:)));
+Norm_Img = Norm_Img_N./Norm_Img_D; %Normalized image                                
+figure, imagesc(Norm_Img),colormap(gray),colorbar,title('Normalized Lung Image')
+%E = Norm_Img;
+%pause(1);
+ 
+mask = zeros(size(Img));
+mask(200:750,100:800) = 1; %Defines initial mask for active contours
+figure,imagesc(mask),colorbar,colormap(gray),title('Initial Contour Location')
+%pause(1);
+ 
+Act_Cont = activecontour(Norm_Img,mask,300); %Active contour operation
+A_C = Act_Cont.*Norm_Img; %Multiplies the binary mask obtained from active contours to the normalized image
+figure,imagesc(A_C),colorbar,colormap(gray)
+ 
+ 
+ 
+[m,n] = size(Norm_Img);
+ 
+ for i = 1:m
+    for j = 1:n
+        if (A_C(i,j)  > 0.7) | (A_C(i,j) <0.10) %Defines the threshold window
+            A_C(i,j) = 0;
+        else
+            A_C(i,j) =1;
+        end
+     end
+ end
+ figure, imagesc(A_C),colormap(gray),colorbar,title('Segnmentation by thresholding')
+A_C_Fill = imfill(A_C); %Fills the gaps in the segmented image.
+figure,imagesc(A_C_Fill),colorbar,colormap(gray),title('Segmented and filled')
+%pause(1);
+ 
+SE = strel('sphere',3); %Defines the structuring element
+Erode_A_C_Fill = imerode(A_C_Fill,SE); %Erosion using the structuring element
+figure, imagesc(Erode_A_C_Fill), colormap(gray),colorbar, title('Segmented and eroded')
+%pause(1);
+ 
+Segmented = Erode_A_C_Fill.*Norm_Img ; %Multiplies the binary mask obtained after erosion
+figure,imagesc(Segmented),colormap(gray),colorbar, title('Segmented lung')
+%pause(1);
+    
+Manual1 = roipoly(Norm_Img) %Takes input 1 for manual segmentation 
+Manual2 = roipoly(Norm_Img) %Takes input 2 for manual segmentation
+Manual = (Manual1 + Manual2) %Adds both the inputs of manual segmentation
+Manual = round(Manual) %Converts double into integer value
+Erode_A_C_Fill = round(Erode_A_C_Fill) %Converts double into integer value
+ 
+Compare_Dice = dice(Erode_A_C_Fill,Manual) %Calculates dice co-efficient
+ 
+figure
+imshowpair(Erode_A_C_Fill, Manual) %Overlaps the automatic and manual segmented portions 
+title(['Dice Index = ' num2str(Compare_Dice)])
+ 
+Compare_Jaccard = jaccard(Erode_A_C_Fill,Manual) %Calculates jaccard co-efficient
+ 
+figure
+imshowpair(Erode_A_C_Fill,Manual)%Overlaps the automatic and manual segmented portions
+title(['Jaccard Index = ' num2str(Compare_Jaccard)])
