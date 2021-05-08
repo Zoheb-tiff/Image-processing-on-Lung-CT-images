@@ -1,0 +1,50 @@
+clear all;
+ 
+Img = imread('CTCOVID.jpg'); %Reads the image
+Img = rgb2gray(Img); %Converts image to grayscale
+= double(Img); %Converts format of iamge to double to allow normalization
+ 
+Img_Norm_N = Img - min(Img(:));
+Img_Norm_D = max(Img(:)) - min(Img(:));
+Img_Norm = Img_Norm_N/Img_Norm_D; %Normalized image
+figure,imagesc(Img_Norm),colorbar,colormap(gray),title('Original Image')
+ 
+[x1,y1] = getpts %Gets first seed point
+[x2,y2] = getpts %Gets second seed point
+ 
+x1 = round(x1); %Converts double to integer number
+y1 = round(y1); %Converts double to integer number
+x2 = round(x2); %Converts double to integer number
+y2 = round(y2); %Converts double to integer number
+ 
+ReG1 = regiongrowing(Img_Norm(:,:),y1,x1,0.1); %Applies region growing on the first seed point
+ReG_Img1 = ReG1.*Img_Norm; %Multiplies the binary mask to normalized image to segment
+ReG_fill1 = imfill(ReG_Img1); %Converts the 0s surrounded by 1s to 1s
+ 
+ReG2 = regiongrowing(Img_Norm(:,:),y2,x2,0.1); %Applies region growing on the second seed point
+ReG_Img2 = ReG2.*Img_Norm; %Multiplies the binary mask to normalized image to segment
+ReG_fill2 = imfill(ReG_Img2); %Converts the 0s surrounded by 1s to 1s
+ 
+ReG_fill = ReG_fill1 + ReG_fill2; %Adds the two segmented regions
+figure,imagesc(ReG_fill),colorbar,colormap(gray),title('Segmented Portion of COVID Patient Lung')
+ReG_fillX = double(logical(ReG_fill)); %converts to format of double but with values of 0s and 1s only
+ 
+Manual1 = roipoly(Img_Norm) %Takes input 1 for manual segmentation 
+Manual2 = roipoly(Img_Norm) %Takes input 2 for manual segmentation
+ 
+Manual = (Manual1 + Manual2) %Adds both the inputs of manual segmentation
+ 
+Manual = round(Manual) %Converts double into integer value
+ReG_fill = round(ReG_fill) %Converts double into integer value
+ 
+Compare_Dice = dice(ReG_fillX,Manual) %Calculates dice co-efficient
+ 
+figure
+imshowpair(ReG_fillX, Manual) %Overlaps the automatic and manual segmented portions 
+title(['Dice Index = ' num2str(Compare_Dice)])
+ 
+Compare_Jaccard = jaccard(ReG_fillX,Manual) %Calculates jaccard co-efficient
+ 
+figure
+imshowpair(ReG_fillX,Manual)%Overlaps the automatic and manual segmented portions
+title(['Jaccard Index = ' num2str(Compare_Jaccard)])
